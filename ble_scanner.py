@@ -2,9 +2,17 @@
 import asyncio
 from bleak import BleakClient, BleakError 
 import socket
+import platform 
+
+os_name = platform.system() 
+if os_name == 'Windows':
+    DEVICE_ADDRESS = "78:21:84:8A:14:F2" 
+elif os_name == 'Darwin':
+    DEVICE_ADDRESS = "F5A6EF50-BF44-B5DB-3BD0-0432180F23FF"
+
 
 # UUIDs for the service and characteristics that contain the data
-DEVICE_ADDRESS = "78:21:84:8A:14:F2"
+
 SERVICE_UUID = "bd0f56c6-a403-4d3a-86ba-6fed11ce8473"
 CHARACTERISTIC_UUID = "1fe90638-437c-490c-ad92-bda3b9423bab"
 UDP_PORT = 12345
