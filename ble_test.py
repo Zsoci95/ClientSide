@@ -19,7 +19,7 @@ imu_service_uuid = "bd0f56c6-a403-4d3a-86ba-6fed11ce8473"  # replace with actual
 imu_data_uuid = "1fe90638-437c-490c-ad92-bda3b9423bab"  # replace with actual IMU data UUID
 
 # Define callback function for receiving notifications
-async def handle_notification(sender, data, queue):
+async def handle_notification(data, queue):
     timestamp = int(datetime.now().timestamp())
     data_str = data.decode('utf-8')
     data_list = data_str.split(',')
@@ -58,7 +58,7 @@ async def run():
         async with BleakClient("F5A6EF50-BF44-B5DB-3BD0-0432180F23FF") as client:
             while True:
                 data = await client.read_gatt_char(imu_data_uuid)
-                handle_notification(None, data, queue)
+                await handle_notification(data, queue)
                 
     except BleakError as e:
         print(f"Error: {e}")
