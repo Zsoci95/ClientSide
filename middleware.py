@@ -32,9 +32,13 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 async def data_handler(data): 
     try:
         data_str = data.decode('utf-8')
-        sock.sendto(bytes(data_str, "utf-8"), (UDP_ADDRESS, UDP_PORT))
+        if data_str.startswith('[') and data_str.endswith(']'):
+            data_str = data_str[1:-1] # remove the first and last character
+            sock.sendto(bytes(data_str, "utf-8"), (UDP_ADDRESS, UDP_PORT))
+            print(data_str)
+        else: 
+            print("Partial packet received")
         data_list = data_str.split(',')
-        print(data_str)
     except UnicodeDecodeError:
         print("UnicodeDecodeError")
     
