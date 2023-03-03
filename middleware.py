@@ -3,6 +3,8 @@ import asyncio
 from bleak import BleakClient, BleakError 
 import socket
 import platform 
+import logging
+
 
 device_used = 2
 
@@ -27,7 +29,7 @@ CHARACTERISTIC_UUID = "1fe90638-437c-490c-ad92-bda3b9423bab"
 UDP_PORT = 12345
 UDP_ADDRESS = '127.0.0.1'
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#sock.bind((UDP_ADDRESS, UDP_PORT))
+
 
 async def data_handler(data): 
     try:
@@ -36,25 +38,34 @@ async def data_handler(data):
             data_str = data_str[1:-1] # remove the first and last character
             sock.sendto(bytes(data_str, "utf-8"), (UDP_ADDRESS, UDP_PORT))
             print(data_str)
-        else: 
-            print("Partial packet received")
+        elif data_str.endswith(']') and data_str[0] == '\x00':
+            data_str = data_str[:-1] # remove the last character
+            sock.sendto(bytes(data_str, "utf-8"), (UDP_ADDRESS, UDP_PORT))
+            print(data_str)
+        else:
+            print("ELSE")
+            print(data_str)
+            test = data_str[0]
+            print(test)
         data_list = data_str.split(',')
     except UnicodeDecodeError:
-        print("UnicodeDecodeError")
+        print("UNICODE ERROR")
     
     
    
 
 
 async def run():
-    client = BleakClient(DEVICE_ADDRESS)
-    try:
-        await client.connect()
-        while True:
-            data = await client.read_gatt_char(CHARACTERISTIC_UUID) 
-            await data_handler(data)
-    except BleakError as e: 
-        print(e)
+    client = BleakClient(DEVICE_ADDRESS, timeout=None)
+    while True:
+        try:
+            await client.connect()
+            while True:
+                data = await client.read_gatt_char(CHARACTERISTIC_UUID) 
+                await data_handler(data)
+        except BleakError as e: 
+            print(e)
+    
     
 
 
