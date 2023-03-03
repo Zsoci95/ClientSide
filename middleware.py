@@ -4,11 +4,20 @@ from bleak import BleakClient, BleakError
 import socket
 import platform 
 
+device_used = 2
+
 os_name = platform.system() 
 if os_name == 'Windows':
-    DEVICE_ADDRESS = "78:21:84:8A:14:F2" 
+    if device_used == 1:
+        DEVICE_ADDRESS = "78:21:84:8A:14:F2" 
+    elif device_used == 2:
+        DEVICE_ADDRESS = "78:21:84:8B:55:5A"
 elif os_name == 'Darwin':
-    DEVICE_ADDRESS = "F5A6EF50-BF44-B5DB-3BD0-0432180F23FF"
+    if device_used == 1:
+        DEVICE_ADDRESS = "F5A6EF50-BF44-B5DB-3BD0-0432180F23FF"
+    elif device_used == 2:
+        DEVICE_ADDRESS = "D5F439C0-144F-7A8D-CD57-9625EF92E024"
+
 
 
 # UUIDs for the service and characteristics that contain the data
