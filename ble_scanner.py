@@ -2,7 +2,6 @@ import bleak
 import asyncio 
 
 
-
 async def run(): 
     devices = await bleak.BleakScanner.discover()
     for d in devices:
