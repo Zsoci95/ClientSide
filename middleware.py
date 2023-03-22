@@ -5,11 +5,12 @@ import platform
 from datetime import datetime
 import threading   # for the UDP listener
 import csv
+import queue
 
 
 
 # Settings
-device_used = 2  # 1 or 2 depending on which device you are using
+device_used = 1  # 1 or 2 depending on which device you are using
 sql_used = False
 trusted_conn = True
 
@@ -60,7 +61,7 @@ UDP_PORT_SEND = 12345
 UDP_PORT_LISTEN = 12347
 UDP_ADDRESS = '127.0.0.1'
 
-
+data_queue = queue.Queue()  # create a queue to store the data
 
 
 async def data_handler(data):
@@ -102,13 +103,15 @@ def udp_listener():
         try:
             data_str = bytedata.decode('utf-8')
             data_split = data_str.split(',')
-            if data_split[22] == "true": 
-                with open("output.csv", "a") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(data_split)
+            if data_split[22] == "True": 
+                data_queue.put(data_split)
+                while not data_queue.empty():
+                    with open("output.csv", "a") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(data_queue.get())
         except UnicodeDecodeError as e:
             print(e)
-    
+
 
 async def main():
     client = BleakClient(DEVICE_ADDRESS, timeout=None)
