@@ -9,8 +9,9 @@ import queue
 
 
 
+
 # Settings
-device_used = 1  # 1 or 2 depending on which device you are using
+device_used = 2  # 1 or 2 depending on which device you are using
 sql_used = False
 trusted_conn = True
 
@@ -52,6 +53,8 @@ elif os_name == 'Darwin':
     elif device_used == 2:
         DEVICE_ADDRESS = "BF7B588A-F102-F7EF-5FC2-34AB0135135D"
 
+prev_time = datetime.now()
+
 
 # UUIDs for the service and characteristics that contain the data
 
@@ -62,9 +65,17 @@ UDP_PORT_LISTEN = 12347
 UDP_ADDRESS = '127.0.0.1'
 
 data_queue = queue.Queue()  # create a queue to store the data
+freq_counter = 0  # used to count the number of times the data handler is called
+prev_time = datetime.now()  # used to calculate the frequency of the data handler
 
 
-async def data_handler(data):
+def data_handler(uuid, data):
+    global prev_time
+    curr_time = datetime.now()
+    frequency = 1 / (curr_time - prev_time).total_seconds()
+
+   
+    prev_time = curr_time
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # create UDP socket
 
     try:  # try to decode the data, if it fails, throw exception
@@ -77,14 +88,13 @@ async def data_handler(data):
             elif data_str.startswith('['):
                 # remove the first and last character
                 data_str = data_str[1:-1]
+            print(data_str)   
             data_str += ',' + str(timestamp)  # add the timestamp to the end of the string
             sock.sendto(bytes(data_str, "utf-8"), (UDP_ADDRESS, UDP_PORT_SEND))
+        
             data_list = data_str.split(',')
-            quat0_w, quat0_x, quat0_y, quat0_z, quat1_w, quat1_x, quat1_y, quat1_z, quat2_w, quat2_x, quat2_y, quat2_z, accel0_x, accel0_y, accel0_z, accel1_x, accel1_y, accel1_z, accel2_x, accel2_y, accel2_z, timestamp = data_list
-            if sql_used:
-                cursor.execute("INSERT INTO imu_data (timestamp, quat0_w, quat0_x, quat0_y, quat0_z, quat1_w, quat1_x, quat1_y, quat1_z, quat2_w, quat2_x, quat2_y, quat2_z, accel0_x, accel0_y, accel0_z, accel1_x, accel1_y, accel1_z, accel2_x, accel2_y, accel2_z) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                               (timestamp, quat0_w, quat0_x, quat0_y, quat0_z, quat1_w, quat1_x, quat1_y, quat1_z, quat2_w, quat2_x, quat2_y, quat2_z, accel0_x, accel0_y, accel0_z, accel1_x, accel1_y, accel1_z, accel2_x, accel2_y, accel2_z))
-                conn.commit()  # commit the changes to the database
+            
+            
         else:
             print("ERROR")
             
@@ -115,24 +125,30 @@ def udp_listener():
 
 async def main():
     client = BleakClient(DEVICE_ADDRESS, timeout=None)
-    
+   
     while True:
         try:
+            print("Connecting")
             await client.connect()
             print("Connected")
-            while True:
-                data = await client.read_gatt_char(CHARACTERISTIC_UUID)
-                await data_handler(data)
-                
-
+            await client.start_notify(CHARACTERISTIC_UUID, data_handler)
         except BleakError as e:
             print(e)
 
+        while True:
+            await asyncio.sleep(1)
 
-thread = threading.Thread(target=udp_listener)
-thread.start()
+            #data_handler(data)
+
+        
+
+
+
+#thread = threading.Thread(target=udp_listener)
+#thread.start()
 
 
 
 # Run the coroutine in the event loop
+
 asyncio.run(main())
