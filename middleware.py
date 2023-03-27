@@ -7,13 +7,14 @@ import threading   # for the UDP listener
 import csv
 import queue
 
-
-
-
 # Settings
 device_used = 2  # 1 or 2 depending on which device you are using
 sql_used = False
 trusted_conn = True
+os_name = platform.system()  # get the operating system name
+disonnected_event = asyncio.Event()  # create an event to handle disconnections
+disonnected_event.clear()  # clear the event
+
 
 # Variables
 if trusted_conn:  # replace with correct variables
@@ -27,7 +28,7 @@ else:
                 "Database=DB02;"
                 "UID=Alex;"
                 "PWD=Alex123;")
-os_name = platform.system()
+
 
 
 if sql_used:
@@ -60,9 +61,12 @@ prev_time = datetime.now()
 
 SERVICE_UUID = "bd0f56c6-a403-4d3a-86ba-6fed11ce8473"
 CHARACTERISTIC_UUID = "1fe90638-437c-490c-ad92-bda3b9423bab"
+DESCRIPTOR_HANDLE = "IMU_data"
 UDP_PORT_SEND = 12345
 UDP_PORT_LISTEN = 12347
 UDP_ADDRESS = '127.0.0.1'
+
+
 
 data_queue = queue.Queue()  # create a queue to store the data
 freq_counter = 0  # used to count the number of times the data handler is called
@@ -122,30 +126,55 @@ def udp_listener():
         except UnicodeDecodeError as e:
             print(e)
 
+def disconnected_callback(client):
+    print("Disconnected")
+    disonnected_event.set()
+
+    
+
 
 async def main():
-    client = BleakClient(DEVICE_ADDRESS, timeout=None)
-   
+    is_notifying = False # used to make sure that the notification is only started once
+    
+    # try to connect to device and automatically reconnect if connection is lost
+    # making sure that the nofification is only started once 
     while True:
+        client = BleakClient(DEVICE_ADDRESS, disconnected_callback=disconnected_callback)
         try:
-            print("Connecting")
-            await client.connect()
-            print("Connected")
-            await client.start_notify(CHARACTERISTIC_UUID, data_handler)
-        except BleakError as e:
+            if not client.is_connected:
+                print("Connecting")
+                await client.connect()
+                print("Connected")
+            
+            await asyncio.sleep(1)
+            if not is_notifying and client.is_connected:
+                print("Starting notification")
+                try:
+                    is_notifying = True
+                    print("Notification started")
+                    await client.start_notify(CHARACTERISTIC_UUID, data_handler)
+                except Exception as e:
+                    print(e)
+
+            
+            await disonnected_event.wait()
+            is_notifying = False 
+            disonnected_event.clear()
+
+            #delete the client object
+            #del client
+            await asyncio.sleep(6)
+            
+
+            
+            
+        except Exception as e:
             print(e)
 
-        while True:
-            await asyncio.sleep(1)
-
-            #data_handler(data)
-
-        
 
 
-
-#thread = threading.Thread(target=udp_listener)
-#thread.start()
+thread = threading.Thread(target=udp_listener)
+thread.start()
 
 
 
