@@ -6,9 +6,10 @@ from datetime import datetime
 import threading   # for the UDP listener
 import csv
 import queue
+import pymysql as sql
 
 # Settings
-device_used = 2  # 1 or 2 depending on which device you are using
+device_used = 1  # 1 or 2 depending on which device you are using
 sql_used = False
 trusted_conn = True
 os_name = platform.system()  # get the operating system name
@@ -17,30 +18,19 @@ disonnected_event.clear()  # clear the event
 
 
 # Variables
-if trusted_conn:  # replace with correct variables
-    cnxn_str = ("Driver={SQL Server Native Client 11.0};"
-                "Server=USXXX00345,67800;"
-                "Database=DB02;"
-                "Trusted_Connection=yes;")
-else:
-    conn_str = ("Driver={SQL Server Native Client 11.0};"
-                "Server=USXXX00345,67800;"
-                "Database=DB02;"
-                "UID=Alex;"
-                "PWD=Alex123;")
-
 
 
 if sql_used:
-    import pyodbc
-    conn = pyodbc.connect(conn_str)  # create connection to SQL server
-    cursor = conn.cursor()  # create cursor to execute SQL commands
+    db = sql.connect(
+        host="localhost",
+        user="user",
+        passwd="password",
+        database="database"
+    )
+    cursor = db.cursor()
+    cursor.execute("CREATE TABLE IF NOT EXISTS imu_data (quat0_w, quat0_x, quat0_y, quat0_z, quat01_w, quat1_x, quat1_y, quat1_z, \
+                    quat2_w, quat2_x, quat2_y, quat2_z, acc0_x, acc0_y, acc0_z, acc1_x, acc1_y, acc1_z, acc2_x, acc2_y, acc2_z, timestamp TINYTEXT)")
 
-    # Check if imu_data table exists, if not create it
-    cursor.execute('''IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='imu_data' and xtype='U') 
-    CREATE TABLE imu_data (timestamp TINYTEXT, quat0_w FLOAT, quat0_x FLOAT, quat0_y FLOAT, quat0_z FLOAT, 
-    quat1_w FLOAT, quat1_x FLOAT, quat1_y FLOAT, quat1_z FLOAT, quat2_w FLOAT, quat2_x FLOAT, quat2_y FLOAT, quat2_z FLOAT, 
-    accel0_x FLOAT, accel0_y FLOAT, accel0_z FLOAT, accel1_x FLOAT, accel1_y FLOAT, accel1_z FLOAT, accel2_x FLOAT, accel2_y FLOAT, accel2_z FLOAT)''')
 
 
 if os_name == 'Windows':
@@ -50,11 +40,11 @@ if os_name == 'Windows':
         DEVICE_ADDRESS = "78:21:84:8B:55:5A"
 elif os_name == 'Darwin':
     if device_used == 1:
-        DEVICE_ADDRESS = "F5A6EF50-BF44-B5DB-3BD0-0432180F23FF"
+        DEVICE_ADDRESS = "0E1CA921-BE69-8FEA-9711-91E4997E8BD4"
     elif device_used == 2:
         DEVICE_ADDRESS = "BF7B588A-F102-F7EF-5FC2-34AB0135135D"
 
-prev_time = datetime.now()
+
 
 
 # UUIDs for the service and characteristics that contain the data
@@ -110,7 +100,7 @@ def data_handler(uuid, data):
 
 def udp_listener():
     sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-    sock2.bind((UDP_ADDRESS, UDP_PORT_LISTEN))
+    #sock2.bind((UDP_ADDRESS, UDP_PORT_LISTEN))
     
     while True:
         bytedata = sock2.recv(1024)
@@ -173,8 +163,8 @@ async def main():
 
 
 
-thread = threading.Thread(target=udp_listener)
-thread.start()
+#thread = threading.Thread(target=udp_listener)
+#thread.start()
 
 
 
