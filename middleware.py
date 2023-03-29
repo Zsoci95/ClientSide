@@ -6,10 +6,10 @@ from datetime import datetime
 import threading   # for the UDP listener
 import csv
 import queue
-import pymysql as sql
+#import pymysql as sql
 
 # Settings
-device_used = 1  # 1 or 2 depending on which device you are using
+device_used = 2  # 1 or 2 depending on which device you are using
 sql_used = False
 trusted_conn = True
 os_name = platform.system()  # get the operating system name
@@ -66,7 +66,7 @@ prev_time = datetime.now()  # used to calculate the frequency of the data handle
 def data_handler(uuid, data):
     global prev_time
     curr_time = datetime.now()
-    frequency = 1 / (curr_time - prev_time).total_seconds()
+    #frequency = 1 / (curr_time - prev_time).total_seconds()
 
    
     prev_time = curr_time
@@ -100,19 +100,20 @@ def data_handler(uuid, data):
 
 def udp_listener():
     sock2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-    #sock2.bind((UDP_ADDRESS, UDP_PORT_LISTEN))
+    sock2.bind((UDP_ADDRESS, UDP_PORT_LISTEN))
     
     while True:
         bytedata = sock2.recv(1024)
+        f = open("output.csv", "a", newline='')
         try:
             data_str = bytedata.decode('utf-8')
             data_split = data_str.split(',')
             if data_split[22] == "True": 
                 data_queue.put(data_split)
                 while not data_queue.empty():
-                    with open("output.csv", "a") as f:
-                        writer = csv.writer(f)
-                        writer.writerow(data_queue.get())
+                    writer = csv.writer(f)
+                    writer.writerow(data_queue.get())
+                f.close()
         except UnicodeDecodeError as e:
             print(e)
 
@@ -129,42 +130,30 @@ async def main():
     # try to connect to device and automatically reconnect if connection is lost
     # making sure that the nofification is only started once 
     while True:
-        client = BleakClient(DEVICE_ADDRESS, disconnected_callback=disconnected_callback)
-        try:
-            if not client.is_connected:
-                print("Connecting")
-                await client.connect()
-                print("Connected")
-            
-            await asyncio.sleep(1)
-            if not is_notifying and client.is_connected:
-                print("Starting notification")
-                try:
-                    is_notifying = True
-                    print("Notification started")
-                    await client.start_notify(CHARACTERISTIC_UUID, data_handler)
-                except Exception as e:
-                    print(e)
+        client = BleakClient(DEVICE_ADDRESS, disconnected_callback=disconnected_callback, timeout=1000)
+        print("Conneting")
+        await client.connect()
+        print("Connected")
 
+        while True:
+            print("Notification started")
+            await client.start_notify(CHARACTERISTIC_UUID, data_handler)
             
+        
             await disonnected_event.wait()
-            is_notifying = False 
+
             disonnected_event.clear()
-
-            #delete the client object
-            #del client
-            await asyncio.sleep(6)
             
+            print("Client disconnected")
+            break
+
 
             
-            
-        except Exception as e:
-            print(e)
+    
 
 
-
-#thread = threading.Thread(target=udp_listener)
-#thread.start()
+thread = threading.Thread(target=udp_listener)
+thread.start()
 
 
 
