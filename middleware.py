@@ -53,7 +53,7 @@ SERVICE_UUID = "bd0f56c6-a403-4d3a-86ba-6fed11ce8473"
 CHARACTERISTIC_UUID = "1fe90638-437c-490c-ad92-bda3b9423bab"
 DESCRIPTOR_HANDLE = "IMU_data"
 UDP_PORT_SEND = 12345
-UDP_PORT_LISTEN = 12347
+UDP_PORT_LISTEN = 12345
 UDP_ADDRESS = '127.0.0.1'
 
 
@@ -88,10 +88,8 @@ def data_handler(uuid, data):
         
             data_list = data_str.split(',')
             
-            
         else:
-            print("ERROR")
-            
+            print("ERROR")   
 
     except UnicodeDecodeError:
         print("UNICODE ERROR")
@@ -105,10 +103,15 @@ def udp_listener():
     while True:
         bytedata = sock2.recv(1024)
         f = open("output.csv", "a", newline='')
+        #if the file is empty, write the header 
+        if f.tell() == 0:
+            writer = csv.writer(f)
+            writer.writerow(["quat0_w", "quat0_x", "quat0_y", "quat0_z", "quat01_w", "quat1_x", "quat1_y", "quat1_z", \
+                    "quat2_w", "quat2_x", "quat2_y", "quat2_z", "acc0_x", "acc0_y", "acc0_z", "acc1_x", "acc1_y", "acc1_z", "acc2_x", "acc2_y", "acc2_z", "timestamp"])
         try:
             data_str = bytedata.decode('utf-8')
             data_split = data_str.split(',')
-            if data_split[22] == "True": 
+            if True: 
                 data_queue.put(data_split)
                 while not data_queue.empty():
                     writer = csv.writer(f)
@@ -125,7 +128,6 @@ def disconnected_callback(client):
 
 
 async def main():
-    is_notifying = False # used to make sure that the notification is only started once
     
     # try to connect to device and automatically reconnect if connection is lost
     # making sure that the nofification is only started once 
@@ -133,7 +135,7 @@ async def main():
         client = BleakClient(DEVICE_ADDRESS, disconnected_callback=disconnected_callback, timeout=1000)
         print("Conneting")
         await client.connect()
-        print("Connected")
+        print("Connected at:", datetime.now())
 
         while True:
             print("Notification started")
@@ -144,7 +146,7 @@ async def main():
 
             disonnected_event.clear()
             
-            print("Client disconnected")
+            print("Client disconnected at: ", datetime.now())
             break
 
 
