@@ -8,6 +8,7 @@ import csv
 import queue
 #import pymysql as sql
 
+
 # Settings
 device_used = 2  # 1 or 2 depending on which device you are using
 sql_used = False
@@ -53,7 +54,7 @@ SERVICE_UUID = "bd0f56c6-a403-4d3a-86ba-6fed11ce8473"
 CHARACTERISTIC_UUID = "1fe90638-437c-490c-ad92-bda3b9423bab"
 DESCRIPTOR_HANDLE = "IMU_data"
 UDP_PORT_SEND = 12345
-UDP_PORT_LISTEN = 12345
+UDP_PORT_LISTEN = 12347  
 UDP_ADDRESS = '127.0.0.1'
 
 
